@@ -17,14 +17,12 @@ wdat <- read.csv(curl(url2), as.is=T, header=T)
 # add subject attributes to walking data frame
 dat <- merge(wdat, adat, by="id", all.x=T, all.y=F)
 
-
 # reduce dataset to only relevant columns and walking trials (i.e. remove running), and only to men
 dat<-select(dat, id, Condition, Distance, Type, Speed, Time, Num_steps, SL, Population, Sex, Trochanter)
 
 # use only 'N' (Normal speed) as speed. This will result in one value per individual per condition for the Tsimane, and the average of the four trials for the Batek
-# remove trail trials, so we only have open and forest
 # confine to walking and men
-dat<-filter(dat, Speed=="N",Condition!="T",Type=="W",Sex=="M")
+dat<-filter(dat, Speed=="N", Type=="W",Sex=="M")
 
 # Create velocity column
 dat$v<-dat$Distance/dat$Time
@@ -79,7 +77,7 @@ tsimane_mSL_forest<- mean(dat$SL[which(dat$Population == "Tsimane" & dat$Conditi
 ###################################################################################
 #### Figure 1: Theoretical model showing CSLM and anticipate figs 4-5 ####
 ###################################################################################
-# Exponent values for Fig. 1 (NOTE: these values come from empirical models below for Batek, but are used here just to illustrate the general concept. See lines XXX-XXX)
+# Exponent values for Fig. 1 (NOTE: these values come from empirical models below for Batek, but are used here just to illustrate the general concept. See code at line 200 below)
 alpha_batek<-exp(0.1356)
 beta_batek<-0.2666
 
@@ -139,33 +137,38 @@ cor.test(leg_height$Trochanter[leg_height$Population=="Batek"], leg_height$Heigh
 ######### Figure 2. Lstep versus Lleg with color coding by environment. Shows that step length is indeed constrained in forest environments ############
 ###################################################################################
 # Batek
-fig2a<-ggplot(filter(final,Population=="Batek"),aes(x=Trochanter,y=mSL,color=Condition)) + geom_point(shape=19,size=2.5)  +
-  theme_classic(base_size=18) +  xlab(expression(italic(L)[leg](m))) + ylab(expression(italic(L)[step](m))) + theme(legend.position="none")  + scale_color_manual(values=c("#E69F00", "green4")) + stat_smooth(method="lm",size=0.7,se=T, alpha=0.2,aes(fill=Condition)) +
+fig2a<-ggplot(filter(final,Population=="Batek"),aes(x=Trochanter,y=mSL,color=Condition, shape = Condition)) + geom_point(size=2.5)  +
+  theme_classic(base_size=18) +  xlab(expression(italic(L)[leg](m))) + ylab(expression(italic(L)[step](m))) + theme(legend.position="none")  + scale_color_manual(values=c("#E69F00", "green4")) +
+  scale_shape_manual(values=c(19, 17), labels=c("Open", "Forest"), name="") +
+  stat_smooth(method="lm",size=0.7,se=T, alpha=0.2,aes(fill=Condition)) +
   scale_fill_manual(values=c("#E69F00", "green4")) +
   annotate("text",x=0.805,y=.9,label="(A) Batek",size=6)
 
 # Tsimane
-fig2b <- ggplot(filter(final,Population=="Tsimane"),aes(x=Trochanter,y=mSL,color=Condition)) + geom_point(shape=19,size=2.5) + xlim(0.71,.95) + ylim(.5,.85) + theme_classic(base_size=18) +  xlab(expression(italic(L)[leg](m))) + ylab("") + theme(legend.position=c(.225, .765),legend.text=element_text(size=18))  +
+fig2b <- ggplot(filter(final,Population=="Tsimane"),aes(x=Trochanter,y=mSL,color=Condition, shape=Condition)) +
+  geom_point(size=2.5) + xlim(0.71,.95) + ylim(.5,.85) + theme_classic(base_size=18) +  xlab(expression(italic(L)[leg](m))) + ylab("") + theme(legend.position=c(.225, .765),legend.text=element_text(size=18))  +
   scale_color_manual(values=c("#E69F00", "green4"), labels=c("Open", "Forest"), name="") + stat_smooth(method="lm",size=0.7,se=T, alpha=0.2,aes(fill=Condition)) +
+  scale_shape_manual(values=c(19, 17), labels=c("Open", "Forest"), name="") +
+  stat_smooth(method="lm",size=0.7,se=T, alpha=0.2,aes(fill=Condition)) +
   scale_fill_manual(values=c("#E69F00", "green4"), guide="none") +
   guides(color=guide_legend(override.aes=list(fill=c("#E69F00", "green4")))) +
   annotate("text",x=0.75,y=.845,label="(B) Tsimane",size=6)
 
 ##### Make Figure 2 ######
 fig2_final<-grid.arrange(fig2a,fig2b,ncol=2)
-ggsave(fig2_final,fileid="fig2_final.tiff",width=12)
+ggsave(fig2_final, filename ="fig2_final.jpg",width=12)
 
-####### Supporting statistics for figure 2 ###########
+####### Supporting statistics for figure 2 and text under Results section 'Conditions of the CSLM' ###########
 
 #  Batek
 summary(lm(mSL~Trochanter,data=final[final$Condition=="O" & final$Population=="Batek",])) # Open regression: F(1,19)=29.55, p < 0.001; Beta = 1.25 +/- 0.23(SE)
 
-summary(lm(mSL~Trochanter,data=final[final$Condition=="F"& final$Population=="Batek",])) # Closed regression: F(1,19)=0.126, p = 0.73; Beta=0.1 +/- 0.28
+summary(lm(mSL~Trochanter,data=final[final$Condition=="F"& final$Population=="Batek",])) # Closed(forest) regression: F(1,19)=0.126, p = 0.73; Beta=0.1 +/- 0.28
 
 #  Tsimane
 summary(lm(mSL~Trochanter,data=final[final$Condition=="O" & final$Population=="Tsimane",])) # Open regression: F(1,14)=11.57, p = 0.004; Beta=0.85 +/- 0.25(SE)
 
-summary(lm(mSL~Trochanter,data=final[final$Condition=="F"& final$Population=="Tsimane",])) # Closed regression: F(1,14)=0.04, p = 0.85; Beta = -0.04 +/- 0.25
+summary(lm(mSL~Trochanter,data=final[final$Condition=="F"& final$Population=="Tsimane",])) # Closed(forest) regression: F(1,14)=0.04, p = 0.85; Beta = -0.04 +/- 0.25
 
 # Do ANCOVA to test for equality of slopes
 
@@ -173,7 +176,7 @@ summary(lm(mSL~Trochanter,data=final[final$Condition=="F"& final$Population=="Ts
 anc1_tsi<-aov(mSL~Trochanter*Condition,data=final[final$Population=="Tsimane",])
 anc2_tsi<-aov(mSL~Trochanter+Condition,data=final[final$Population=="Tsimane",])
 
-anova(anc1_tsi,anc2_tsi) # Condition is significant for Tsimane (p=0.02)
+anova(anc1_tsi,anc2_tsi) # Condition is significant for Tsimane (p=0.016)
 
 #Batek
 anc1_bat<-aov(mSL~Trochanter*Condition,data=final[final$Population=="Batek",])
@@ -181,24 +184,30 @@ anc2_bat<-aov(mSL~Trochanter+Condition,data=final[final$Population=="Batek",])
 
 anova(anc1_bat,anc2_bat) # Condition is significant for Batek (p<0.01)
 
-
 # T-test on step lengths in open vs forest
 # Batek
 t.test(final$mSL[final$Condition=="O" & final$Population=="Batek"],final$mSL[final$Condition=="F" & final$Population=="Batek"],paired=T)
 # stats: t = 8.02, df = 20, p-value < 0.001, mean of the differences = 0.08
 
+mean(final$mSL[final$Condition=="O" & final$Population=="Batek"]) # mean open step length = 0.82
+mean(final$mSL[final$Condition=="F" & final$Population=="Batek"]) # mean closed step length = 0.74
+
 # Tsimane
 t.test(final$mSL[final$Condition=="O" & final$Population=="Tsimane"],final$mSL[final$Condition=="F" & final$Population=="Tsimane"],paired=T)
 # stats: t = 5.16, df = 15, p-value < 0.001; means difference = 0.09
 
-###################################################################################
-######### Figure 3. s versus v. Shows that step lengths follow predicted equation #############################################################################
+mean(final$mSL[final$Condition=="O" & final$Population=="Tsimane"]) # mean open step length = 0.69
+mean(final$mSL[final$Condition=="F" & final$Population=="Tsimane"]) # mean closed step length = 0.60
 
-# Use Equation 1 from text to plot v versus s and get parameter values A and B. Convert to log-log scale to extract parameter values A and B.Regressions based on all data
+
+###################################################################################
+######### Figure 3. Dimensionless step length (s) versus dimensionless speed (v). Shows that step lengths follow predicted equation. #############################################################################
+
+# Use Equation 1 to plot v versus s and derive parameter values alpha and beta. Convert to log-log scale to extract these parameter values.Regressions based on full dataset
 
 # For Batek 
 summary(lm(log(ms)~log(mdimV),data=filter(final,Population=="Batek")))
-# Parameter values: A = e^0.1356 = 1.145, B = 0.2666
+# Parameter values: alpha = e^0.1356 = 1.145, beta = 0.2666
 # Thus, final equation for Batek is: s = 1.145*v^0.267, R2=0.75
 
 #Calculate residuals
@@ -206,51 +215,45 @@ batek_resid<-resid(lm(log(ms)~log(mdimV),data=filter(final,Population=="Batek"))
 batek_resid_final<-  data.frame(r=batek_resid,v=log(filter(final,Population=="Batek")$mdimV))
 batek_mod<-lm(r~v,data=batek_resid_final)
 
+# For Tsimane 
+summary(lm(log(ms)~log(mdimV),data=filter(final,Population=="Tsimane")))
+# Parameter values: A = e^0.158 = 1.17, B = 0.4 
+# Thus, final equation for Tsimane is: s = 1.17*v^0.4, R2=0.68
+
 #Calculate residuals for Tsimane
 tsim_resid<-resid(lm(log(ms)~log(mdimV),data=filter(final,Population=="Tsimane")))
 tsim_resid_final<-  data.frame(r=tsim_resid,v=log(filter(final,Population=="Tsimane")$mdimV))
 tsim_mod<-lm(r~v,data=tsim_resid_final)
 
-# For Tsimane 
-summary(lm(log(ms)~log(mdimV),data=filter(final,Population=="Tsimane")))
-# Parameter values: A = e^0.16 = 1.17, B = 0.4 
-# Thus, final equation for Tsimane is: s = 1.17*v^0.4, R2=0.68
-
 alpha_tsimane<-exp(0.15869)
 beta_tsimane<-0.41499
+# Note that alpha and beta for batek were defined on line 82 of the R code to construct Fig. 1
 
 # Batek
-fig3a <- ggplot(filter(final,Population=="Batek"),aes(x=mdimV,y=ms,color=Condition)) + geom_point(shape=19,size=2.5)  + xlim(0.2,0.6) + ylim(0.5,1.1) + theme_classic(base_size=18) + ylab(expression(italic(s))) + xlab(expression(italic(v))) + theme(legend.position="none")  + scale_color_manual(values=c("green4", "#E69F00")) +  stat_function(fun = function(x) alpha_batek * (x)^beta_batek,color="darkgrey", lwd=1.25) +  theme_classic(base_size=18) +  theme(legend.position="none")  + scale_color_manual(values=c("#E69F00", "green4")) +
+fig3a <- ggplot(filter(final,Population=="Batek"),aes(x=mdimV,y=ms,color=Condition, shape=Condition)) + geom_point(size=2.5)  + xlim(0.2,0.6) + ylim(0.5,1.1) + theme_classic(base_size=18) + ylab(expression(italic(s))) + xlab(expression(italic(v))) + theme(legend.position="none")  + scale_color_manual(values=c("green4", "#E69F00")) +
+  scale_shape_manual(values=c(19, 17)) +
+  stat_function(fun = function(x) alpha_batek * (x)^beta_batek,color="darkgrey", lwd=1.25) +  theme_classic(base_size=18) +  theme(legend.position="none")  + scale_color_manual(values=c("#E69F00", "green4")) +
   annotate("text",x=0.27,y=1.05,label="(A) Batek",size=6) +
   geom_segment(aes(x=0.28,xend=0.234,y=0.70,yend=0.77),arrow=arrow(length=unit(0.2,"cm")),color="black") + 
   annotate("text",x=0.3,y=0.685,label="Preferred, eq. 1",size=4.5)
 
-
 # Tsimane
-fig3b <- ggplot(filter(final,Population=="Tsimane"),aes(x=mdimV,y=ms,color=Condition)) +
-  geom_point(shape=19,size=2.5) + 
+fig3b <- ggplot(filter(final,Population=="Tsimane"),aes(x=mdimV,y=ms,color=Condition, shape=Condition)) +
+  geom_point(size=2.5) + 
   xlim(0.2,0.6) + ylim(0.5,1.1) +  
   theme_classic(base_size=18) + 
   ylab("") + xlab(expression(italic(v)))  +
   scale_color_manual(values=c("green4", "#E69F00")) +
   stat_function(fun = function(x) alpha_tsimane * (x)^beta_tsimane,color="darkgrey", lwd=1.25) + theme(legend.position=c(.2, .7),legend.text=element_text(size=18)) + scale_color_manual(values=c("#E69F00", "green4"), labels=c("Open", "Forest"), name="")+
+  scale_shape_manual(values=c(19, 17), labels=c("Open", "Forest"), name="") +
   annotate("text",x=0.29,y=1.05,label="(B) Tsimane",size=6) + geom_segment(aes(x=0.24,xend=0.21,y=0.55,yend=0.6),arrow=arrow(length=unit(0.2,"cm")),color="black") + 
   annotate("text",x=0.27,y=0.535,label="Preferred, eq. 1",size=4.5)
 
 ##### Make Figure 3 ######
 fig3_final<-grid.arrange(fig3a,fig3b,ncol=2)
-ggsave(fig3_final,fileid="fig3_final.jpg",width=12)
+ggsave(fig3_final,filename ="fig3_final.jpg",width=12)
 
-# t-test on dimensionless velocity between open and forest conditions
-# Batek
-t.test(final$mdimV[final$Condition=="O" & final$Population=="Batek"],final$mdimV[final$Condition=="F" & final$Population=="Batek"],paired=T)
-# stats: t = 18.172, df = 20, p-value < 0.001
-
-# Tsimane
-t.test(final$mdimV[final$Condition=="O" & final$Population=="Tsimane"],final$mdimV[final$Condition=="F" & final$Population=="Tsimane"],paired=T)
-# stats: t = 8.84, df = 15, p-value < 0.001
-
-##### T-tests on dimensioned velocity in open and closed #####
+##### T-tests on dimensioned velocity in open and closed; see first paragraph in Results section 'Predictions of the CSLM' #####
 # Batek
 t.test(final$mv[final$Condition=="O" & final$Population=="Batek"],final$mv[final$Condition=="F" & final$Population=="Batek"],paired=T)
 # stats: t(20)=17.455, p < 0.001, mean of differences = 0.50 m/s
@@ -259,24 +262,40 @@ t.test(final$mv[final$Condition=="O" & final$Population=="Batek"],final$mv[final
 t.test(final$mv[final$Condition=="O" & final$Population=="Tsimane"],final$mv[final$Condition=="F" & final$Population=="Tsimane"],paired=T)
 # stats: t(15)=8.54, p < 0.001, mean of differences = 0.36 m/s
 
-##############################################################
-############################ Figure 4, depicting CSLM ########
 
-fig4a <- ggplot(filter(final,Population=="Batek"),aes(x=Trochanter,y=mdimV,color=Condition)) + xlim(0.7,1) + ylim(0.2,.7) + theme_classic(base_size=18) + ylab(expression(italic(v))) + xlab(expression(italic(L)[leg](m))) + theme(legend.position="none")  + scale_color_manual(values=c( "#E69F00", "green4")) +
+#####  T-test on dimensionless velocity between open and forest conditions; results here not reported in manuscript text #####
+# Batek
+t.test(final$mdimV[final$Condition=="O" & final$Population=="Batek"],final$mdimV[final$Condition=="F" & final$Population=="Batek"],paired=T)
+# stats: t = 18.172, df = 20, p-value < 0.001
+
+# Tsimane
+t.test(final$mdimV[final$Condition=="O" & final$Population=="Tsimane"],final$mdimV[final$Condition=="F" & final$Population=="Tsimane"],paired=T)
+# stats: t = 8.84, df = 15, p-value < 0.001
+
+##############################################################
+############################ Figure 4, depicting CSLM and testing prediction/condition 2 of the CSLM model ########
+
+fig4a <- ggplot(filter(final,Population=="Batek"),aes(x=Trochanter,y=mdimV,color=Condition, shape=Condition)) + xlim(0.7,1) + ylim(0.2,.7) + theme_classic(base_size=18) + ylab(expression(italic(v))) + xlab(expression(italic(L)[leg](m))) + theme(legend.position="none")  + scale_color_manual(values=c( "#E69F00", "green4")) +
+  scale_shape_manual(values=c(19, 17)) +
   geom_hline(yintercept = sum_stats$mu.dimV[sum_stats$Population == "Batek" & sum_stats$Condition == "O"], colour= "#E69F00", lwd=1.5) +
   stat_function(fun = function(x) ((batek_mSL_forest/(alpha_batek*x)))^(1/beta_batek),color="green4",linetype=2, lwd=1.1,xlim=c(0.74,1)) +
-  geom_point(shape=19,size=2.5)+ 
+  geom_point(size=2.5)+ 
   geom_segment(aes(x=0.95,xend=0.95,y=0.61,yend=0.56),arrow=arrow(length=unit(0.2,"cm")),color="black") + annotate("text",x=0.95,y=0.625,label="Mean v",size=4.5) +
   geom_segment(aes(x=0.95,xend=0.95,y=0.325,yend=0.26),arrow=arrow(length=unit(0.2,"cm")),color="black") +
   annotate("text",x=0.95,y=0.34,label="CSLM",size=4.5)+
   annotate("text",x=0.72,y=.7,label="(A) Batek",size=6)
 
 
-fig4b <- ggplot(filter(final,Population=="Tsimane"),aes(x=Trochanter,y=mdimV,color=Condition)) + xlim(.7,1)  + ylim(0.2,.7) + theme_classic(base_size=18) + xlab(expression(italic(L)[leg](m))) + ylab("")+
+fig4b <- ggplot(filter(final,Population=="Tsimane"),aes(x=Trochanter,y=mdimV,color=Condition, shape=Condition)) +
+  xlim(.7,1)  + ylim(0.2,.7) +
+  theme_classic(base_size=18) +
+  xlab(expression(italic(L)[leg](m))) + ylab("")+
   theme(legend.position=c(.25, .8),legend.text=element_text(size=18)) +
   scale_color_manual(values=c("#E69F00", "green4"), name="", labels=c("Open", "Forest")) +
+  scale_shape_manual(values=c(19, 17), labels=c("Open", "Forest"), name="") +
   geom_hline(yintercept = sum_stats$mu.dimV[sum_stats$Population == "Tsimane" & sum_stats$Condition == "O"], colour= "#E69F00", lwd=1.5) +
-  stat_function(fun = function(x) ((tsimane_mSL_forest/x)/alpha_tsimane)^(1/beta_tsimane),color="green4",linetype=2, lwd=1.1)+  geom_point(shape=19, size=2.5) + 
+  stat_function(fun = function(x) ((tsimane_mSL_forest/x)/alpha_tsimane)^(1/beta_tsimane),color="green4",linetype=2, lwd=1.1) +
+  geom_point(size=2.5) + 
   geom_segment(aes(x=0.96,xend=0.96,y=0.51,yend=0.45),arrow=arrow(length=unit(0.2,"cm")),color="black") + annotate("text",x=0.96,y=0.525,label="Mean v",size=4.5) +
   geom_segment(aes(x=0.96,xend=0.96,y=0.3,yend=0.23),arrow=arrow(length=unit(0.2,"cm")),color="black") +
   annotate("text",x=0.96,y=0.315,label="CSLM",size=4.5) +  
@@ -284,7 +303,7 @@ fig4b <- ggplot(filter(final,Population=="Tsimane"),aes(x=Trochanter,y=mdimV,col
 
 ##### Make Figure 4 ######
 fig4_final<-grid.arrange(fig4a,fig4b,ncol=2)
-ggsave(fig4_final,fileid="fig4_final.jpg",width=12)
+ggsave(fig4_final,filename="fig4_final.jpg",width=12)
 
 ##############################################################
 #### Speed cost calculation #############
@@ -313,56 +332,49 @@ fig5b<-ggplot(cost[cost$Population=="Tsimane",],aes(x=Trochanter,y=speed_cost)) 
 fig5_final<-grid.arrange(fig5a,fig5b,ncol=2)
 ggsave(fig5_final,fileid="fig5_final.jpg",width=12)
 
-#### RMSE calculations to examine the comparative fit between the linear and the CSLM. See text for details.
+#### RMSE calculations to examine the comparative fit between the linear and the CSLM. See end of Results section ####
 RMSE <- function(resids) {
   sqrt(mean((resids)^2))
 }
 
 #Batek
 #From exponential function
-x <- cost$Trochanter[cost$Population == "Batek"]
-batek_curve_preds <- (batek_mean-((batek_mSL_forest/(alpha_batek*x)))^(1/beta_batek))*sqrt(9.81*x)
+x <- cost$Trochanter[cost$Population == "Batek"] # Vector of Batek trochanter heights (leg lengths)
+batek_curve_preds <- (batek_mean-((batek_mSL_forest/(alpha_batek*x)))^(1/beta_batek))*sqrt(9.81*x) # with the above leg lengths, 
 batek_curve_res <- batek_curve_preds - cost$speed_cost[cost$Population == "Batek"]
-batek_RMSE_curve <- RMSE(resids=batek_curve_res)
+batek_RMSE_curve <- RMSE(resids=batek_curve_res) # 0.12
 
 batek_lm_res <- resid(lm(speed_cost~Trochanter,data=cost[cost$Population=="Batek",]))
-batek_RMSE_lm <- RMSE(resids = batek_lm_res)
+batek_RMSE_lm <- RMSE(resids = batek_lm_res) #0.10
+# Performance of CSLM and linear is similar(0.12 vs. 0.10)
 
 #Tsimane
 #From exponential function
 x <- cost$Trochanter[cost$Population == "Tsimane"]
 tsimane_curve_preds <- (tsimane_mean-((.6/(1.17*x)))^(1/0.4))*sqrt(9.81*x)
 tsimane_curve_res <- tsimane_curve_preds - cost$speed_cost[cost$Population == "Tsimane"]
-tsimane_RMSE_curve <- RMSE(resids=tsimane_curve_res)
+tsimane_RMSE_curve <- RMSE(resids=tsimane_curve_res) # 0.15
 
 tsimane_lm_res <- resid(lm(speed_cost~Trochanter,data=cost[cost$Population=="Tsimane",]))
-tsimane_RMSE_lm <- RMSE(resids = tsimane_lm_res)
+tsimane_RMSE_lm <- RMSE(resids = tsimane_lm_res) # 0.14
+# Performance of CSLM and linear is similar(0.15 vs. 0.14)
 
+######## Calculate ecological implications of speed cost; see second paragraph of Discussion ########
 
-######## Now calculate ecological implications of speed cost; see second paragraph of Discussion ########
-
-leg<-c(0.94, 0.84, 0.76) # Suppose leg lengths of industrialized population, Batek, and Efe
+leg<-c(0.94, 0.84, 0.76) # Suppose we have leg lengths of industrialized population, Batek, and Efe ordered as follows
 
 dv<-0.5 # Suppose same walking speed in open of dimensionless velocity of 0.5 #
 
-open_v<-dv*sqrt(9.81*leg) ## Walking speeds of  1.518338, 1.435305, and 1.365247 m/s
+open_v<-dv*sqrt(9.81*leg) ## Walking speeds corresponding to 1.518338, 1.435305, and 1.365247 m/s, respectively
 
-open_dist<-(open_v*3600*2)/1000 ## Distance covered in two hours at these speeds is pretty similar across statures in the open: 10.93203 10.33419  9.82978 km
+open_dist<-(open_v*3600*2)/1000 ## Distance covered in two hours at these speeds is pretty similar across statures in the open: 10.93203, 10.33419, and 9.82978 km
 
-### Batek speed cost according to CSLM ###
+### Dimensioned speed cost according to CSLM, derived from Batek data ###
 forest_cost_batek<-(batek_mean-((batek_mSL_forest/(alpha_batek*leg)))^(1/beta_batek))*sqrt(9.81*leg) # Speed cost of 0.91, 0.49, -0.01
 
 forest_speed_batek<-open_v-forest_cost_batek
-forest_speed_batek ### 0.5952990, 0.9320699, and 1.3515564 m/s is forest speed for different statures
+forest_speed_batek ### 0.61,0.95, 1.38 m/s is forest speed for different statures
 
-forest_dist_batek<-(forest_speed_batek*3600*2)/1000 ## Distance covered in two hours at these speeds is drastically different in the forest: 4.286152, 6.710903, and 9.731206 km
+forest_dist_batek<-(forest_speed_batek*3600*2)/1000 ## Distance covered in two hours at these speeds is drastically different in the forest: 4.38,6.8, and 9.9km
 
-### Tsimane speed cost according to CSLM ###
-forest_cost_tsimane<-(tsimane_mean-((tsimane_mSL_forest/(alpha_tsimane*leg)))^(1/beta_tsimane))*sqrt(9.81*leg)
-
-forest_speed_tsimane<-open_v-forest_cost_tsimane
-forest_speed_tsimane ### 0.8821522, 1.0405820, and 1.2156259 m/s is forest speed for different statures
-
-forest_dist_tsimane<- (forest_speed_tsimane*3600*2)/1000
-forest_dist_tsimane ### 6.351496, 7.492190, and 8.752507 km
 
